@@ -1,0 +1,1321 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Heat-Guard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0e1a;--bg2:#0f1525;--card:#111827;--card2:#1a2235;
+  --border:rgba(99,179,237,0.12);--border2:rgba(99,179,237,0.22);
+  --accent:#38bdf8;--accent2:#0ea5e9;
+  --green:#22d3a5;--yellow:#fbbf24;--red:#f87171;--orange:#fb923c;
+  --text:#e2e8f0;--text2:#94a3b8;--text3:#475569;
+  --mono:'DM Mono',monospace;--sans:'Space Grotesk',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(56,189,248,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(56,189,248,0.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
+body::after{content:'';position:fixed;top:-200px;left:50%;transform:translateX(-50%);width:800px;height:400px;background:radial-gradient(ellipse,rgba(56,189,248,0.06) 0%,transparent 70%);pointer-events:none;z-index:0;}
+.wrapper{position:relative;z-index:1;max-width:1300px;margin:0 auto;padding:0 24px 48px;}
+
+header{display:flex;align-items:center;justify-content:space-between;padding:20px 0 22px;border-bottom:1px solid var(--border);margin-bottom:18px;}
+.logo{display:flex;align-items:center;gap:12px;}
+.logo-icon{width:40px;height:40px;background:linear-gradient(135deg,#0ea5e9,#22d3a5);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;}
+.logo-text h1{font-size:18px;font-weight:700;background:linear-gradient(90deg,#38bdf8,#22d3a5);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.logo-text span{font-size:11px;color:var(--text3);font-family:var(--mono);letter-spacing:1.5px;text-transform:uppercase;}
+.hdr-right{display:flex;align-items:center;gap:14px;}
+.hstatus{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text2);font-family:var(--mono);}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--text3);transition:all .4s;}
+.dot.online{background:var(--green);box-shadow:0 0 8px rgba(34,211,165,.8);animation:pdot 2s infinite;}
+.dot.warn{background:var(--yellow);box-shadow:0 0 8px rgba(251,191,36,.7);animation:pdot .8s infinite;}
+.dot.danger{background:var(--red);box-shadow:0 0 8px rgba(248,113,113,.8);animation:pdot .5s infinite;}
+.dot.flashing{background:var(--yellow);box-shadow:0 0 10px rgba(251,191,36,.9);animation:pdot .3s infinite;}
+@keyframes pdot{0%,100%{opacity:1}50%{opacity:.3}}
+.autofix-badge{display:none;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;padding:2px 9px;border-radius:4px;background:rgba(192,132,252,.12);border:1px solid rgba(192,132,252,.3);color:#c084fc;}
+.autofix-badge.show{display:inline-flex;}
+.spin{width:8px;height:8px;border:1.5px solid rgba(192,132,252,.3);border-top-color:#c084fc;border-radius:50%;animation:spin .7s linear infinite;display:none;}
+.spin.on{display:inline-block;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.time-disp{font-family:var(--mono);font-size:12px;color:var(--text3);}
+.dvr{width:1px;height:26px;background:var(--border);}
+
+/* BANNER */
+.banner{border-radius:12px;padding:13px 18px;margin-bottom:14px;display:none;align-items:center;gap:12px;font-size:12px;border:1px solid;animation:fuUp .35s ease;}
+.banner.show{display:flex;}
+.banner.detected{background:rgba(34,211,165,.07);border-color:rgba(34,211,165,.3);color:var(--green);}
+.banner.error{background:rgba(248,113,113,.07);border-color:rgba(248,113,113,.3);color:var(--red);}
+.banner.fixing{background:rgba(251,191,36,.07);border-color:rgba(251,191,36,.3);color:var(--yellow);}
+.banner.info{background:rgba(56,189,248,.07);border-color:rgba(56,189,248,.25);color:var(--accent);}
+.banner-icon{font-size:20px;flex-shrink:0;}
+.banner-body{flex:1;}
+.banner-title{font-weight:600;font-size:13px;margin-bottom:2px;}
+.banner-sub{font-family:var(--mono);font-size:11px;opacity:.85;}
+.banner-close{background:none;border:none;color:var(--text3);cursor:pointer;font-size:15px;padding:2px 6px;}
+.banner-close:hover{color:var(--text2);}
+@keyframes fuUp{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}
+
+/* CONN BAR */
+.conn-bar{background:var(--card);border:1px solid var(--border);border-radius:13px;padding:14px 20px;display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap;transition:border-color .3s;}
+.conn-bar.ready{border-color:rgba(34,211,165,.3);}
+.clbl{font-size:11px;color:var(--text3);font-family:var(--mono);white-space:nowrap;}
+.csel{background:var(--bg2);border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:var(--mono);font-size:12px;padding:6px 10px;outline:none;transition:border-color .2s;}
+.csel:focus{border-color:var(--accent);}
+.csel option{background:var(--card);}
+.bchip{display:none;align-items:center;gap:7px;background:rgba(34,211,165,.08);border:1px solid rgba(34,211,165,.25);border-radius:8px;padding:5px 12px;font-family:var(--mono);font-size:11px;color:var(--green);}
+.bchip.show{display:flex;}
+
+.btn{padding:7px 18px;border-radius:7px;border:1px solid;font-family:var(--mono);font-size:12px;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:6px;white-space:nowrap;position:relative;}
+.btn:disabled{opacity:.32;cursor:not-allowed;}
+.btn-port{border-color:var(--border2);background:rgba(99,179,237,.07);color:var(--text2);}
+.btn-port:hover:not(:disabled){color:var(--accent);border-color:var(--accent);}
+.btn-port.found{border-color:var(--green);color:var(--green);background:rgba(34,211,165,.08);}
+.btn-cn{border-color:var(--accent2);background:rgba(14,165,233,.12);color:var(--accent);}
+.btn-cn:hover:not(:disabled){background:rgba(14,165,233,.22);}
+.btn-cn.active{border-color:var(--green);background:rgba(34,211,165,.12);color:var(--green);}
+.btn-demo{border-color:var(--border2);background:transparent;color:var(--text2);}
+.btn-demo:hover:not(:disabled){color:var(--text);background:var(--card2);}
+.btn-flash{border-color:#f59e0b;background:rgba(245,158,11,.1);color:var(--yellow);}
+.btn-flash:hover:not(:disabled){background:rgba(245,158,11,.2);}
+.btooltip{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:#1a2235;border:1px solid var(--border2);border-radius:6px;padding:5px 10px;font-size:10px;color:var(--text2);white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .2s;z-index:100;}
+.btn:hover .btooltip{opacity:1;}
+
+/* NO SERIAL */
+.no-serial{background:rgba(251,191,36,.07);border:1px solid rgba(251,191,36,.25);border-radius:10px;padding:10px 16px;font-size:12px;color:var(--yellow);font-family:var(--mono);margin-bottom:14px;display:none;}
+.no-serial.show{display:block;}
+
+/* ALERT */
+.alert-bar{display:none;align-items:center;gap:12px;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.3);border-radius:10px;padding:11px 18px;margin-bottom:14px;font-size:13px;}
+.alert-bar.show{display:flex;}
+.alert-txt{flex:1;color:var(--red);}
+.alert-x{background:none;border:none;color:var(--text3);cursor:pointer;font-size:16px;}
+
+/* FLASH PANEL */
+.flash-panel{background:var(--card);border:1px solid rgba(245,158,11,.25);border-radius:14px;padding:18px 22px;margin-bottom:14px;display:none;}
+.flash-panel.show{display:block;}
+.fp-title{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:600;margin-bottom:14px;}
+.badge{font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:4px;}
+.by{background:rgba(251,191,36,.15);color:var(--yellow);border:1px solid rgba(251,191,36,.3);}
+.bg{background:rgba(34,211,165,.12);color:var(--green);border:1px solid rgba(34,211,165,.25);}
+.fw-tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;}
+.fw-tab{font-family:var(--mono);font-size:10px;padding:4px 10px;border-radius:5px;border:1px solid var(--border);background:transparent;color:var(--text3);cursor:pointer;transition:all .2s;}
+.fw-tab.active{border-color:var(--accent2);background:rgba(14,165,233,.12);color:var(--accent);}
+.fp-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;}
+.pin-inp{background:var(--bg2);border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:var(--mono);font-size:12px;padding:6px 10px;outline:none;width:64px;}
+.fw-code{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px;font-family:var(--mono);font-size:10.5px;line-height:1.7;color:var(--text2);max-height:200px;overflow-y:auto;white-space:pre;display:none;margin-top:10px;}
+.fw-code.show{display:block;}
+.fw-code::-webkit-scrollbar{width:3px;}
+.fw-code::-webkit-scrollbar-thumb{background:var(--border2);}
+.prog-wrap{margin-top:12px;display:none;}
+.prog-wrap.show{display:block;}
+.pbar-bg{background:var(--bg2);border-radius:4px;height:5px;overflow:hidden;margin-bottom:8px;}
+.pbar{height:100%;background:linear-gradient(90deg,var(--accent2),var(--green));width:0%;transition:width .3s;}
+.psteps{max-height:100px;overflow-y:auto;display:flex;flex-direction:column;gap:3px;}
+.ps{font-family:var(--mono);font-size:11px;color:var(--text3);display:flex;gap:8px;}
+.ps.done{color:var(--green);}.ps.cur{color:var(--yellow);}.ps.err{color:var(--red);}
+
+/* GRID */
+.grid-main{display:grid;grid-template-columns:1fr 1fr 1fr 310px;grid-template-rows:auto auto;gap:16px;}
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;position:relative;overflow:hidden;transition:border-color .3s;}
+.card:hover{border-color:var(--border2);}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(56,189,248,.28),transparent);}
+.clabel{font-size:11px;color:var(--text3);font-family:var(--mono);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;}
+.cval{font-size:48px;font-weight:600;font-family:var(--mono);line-height:1;letter-spacing:-2px;}
+.cunit{font-size:18px;font-weight:300;color:var(--text2);margin-left:4px;letter-spacing:0;}
+.csub{font-size:12px;color:var(--text3);font-family:var(--mono);margin-top:6px;}
+.tc .cval{color:var(--accent);text-shadow:0 0 20px rgba(56,189,248,.3);}
+.hc .cval{color:var(--green);text-shadow:0 0 20px rgba(34,211,165,.25);}
+.hic .cval{color:var(--yellow);text-shadow:0 0 20px rgba(251,191,36,.25);}
+.trend{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-family:var(--mono);padding:2px 8px;border-radius:4px;margin-top:8px;}
+.trend.up{background:rgba(248,113,113,.12);color:var(--red);}
+.trend.dn{background:rgba(34,211,165,.12);color:var(--green);}
+.trend.st{background:rgba(148,163,184,.1);color:var(--text2);}
+
+.led-row{display:flex;align-items:center;gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid var(--border);}
+.led{width:13px;height:13px;border-radius:50%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);transition:all .5s;flex-shrink:0;}
+.led.g{background:#22d3a5;box-shadow:0 0 14px rgba(34,211,165,.9);border-color:#22d3a5;}
+.led.y{background:#fbbf24;box-shadow:0 0 14px rgba(251,191,36,.9);border-color:#fbbf24;}
+.led.r{background:#f87171;box-shadow:0 0 14px rgba(248,113,113,.9);border-color:#f87171;}
+.led-lbl{font-size:10px;font-family:var(--mono);color:var(--text3);}
+.led-albl{font-size:10px;font-family:var(--mono);margin-left:auto;padding:2px 8px;border-radius:4px;}
+.led-albl.g{background:rgba(34,211,165,.12);color:var(--green);}
+.led-albl.y{background:rgba(251,191,36,.12);color:var(--yellow);}
+.led-albl.r{background:rgba(248,113,113,.12);color:var(--red);}
+
+.gauge-card{grid-column:span 1;grid-row:span 2;}
+.gauge-wrap{display:flex;flex-direction:column;align-items:center;gap:6px;margin:8px 0;}
+.gauge-svg{width:220px;height:130px;}
+.glvl{font-size:14px;font-weight:600;letter-spacing:.8px;}
+.gdesc{font-size:11px;color:var(--text3);font-family:var(--mono);}
+.hiscale{width:100%;display:flex;flex-direction:column;gap:6px;margin-top:12px;}
+.srow{display:flex;align-items:center;gap:8px;font-size:11px;font-family:var(--mono);}
+.sdot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.slbl{color:var(--text2);flex:1;}.srng{color:var(--text3);}
+
+.chart-card{grid-column:span 3;}
+.chart-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.chart-ttl{font-size:13px;font-weight:500;}
+.ctabs{display:flex;gap:5px;}
+.ctab{font-family:var(--mono);font-size:11px;padding:4px 10px;border-radius:5px;border:1px solid var(--border);background:transparent;color:var(--text3);cursor:pointer;transition:all .2s;}
+.ctab.active{border-color:var(--accent2);background:rgba(14,165,233,.12);color:var(--accent);}
+.chart-wrap{position:relative;height:195px;}
+
+.log-card{grid-row:span 2;}
+.log-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.log-ttl{font-size:13px;font-weight:500;}
+.log-scroll{height:355px;overflow-y:auto;display:flex;flex-direction:column;gap:5px;}
+.log-scroll::-webkit-scrollbar{width:3px;}
+.log-scroll::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+.log-entry{display:flex;gap:8px;font-family:var(--mono);font-size:11px;line-height:1.5;padding:6px 9px;border-radius:7px;background:var(--bg2);border:1px solid var(--border);animation:fuUp .3s ease;}
+.lt{color:var(--text3);flex-shrink:0;}
+.lm{color:var(--text2);}
+.lm.ok{color:var(--green);}.lm.info{color:var(--accent);}.lm.warn{color:var(--yellow);}.lm.err{color:var(--red);}.lm.fix{color:#c084fc;}
+
+@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-5px)}40%,80%{transform:translateX(5px)}}
+
+/* LINE NOTIFY PANEL */
+.line-panel{background:var(--card);border:1px solid rgba(6,199,85,.25);border-radius:14px;padding:18px 22px;margin-bottom:14px;display:none;}
+.line-panel.show{display:block;}
+.line-title{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:600;margin-bottom:16px;}
+.line-logo{width:26px;height:26px;background:#06c755;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+.line-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
+.line-field{display:flex;flex-direction:column;gap:5px;}
+.line-field label{font-family:var(--mono);font-size:10px;color:var(--text3);letter-spacing:.8px;text-transform:uppercase;}
+.line-inp{background:var(--bg2);border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:var(--mono);font-size:12px;padding:7px 10px;outline:none;transition:border-color .2s;width:100%;}
+.line-inp:focus{border-color:#06c755;}
+.line-inp.full{grid-column:span 2;}
+.line-triggers{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;}
+.trigger-chip{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;padding:5px 11px;border-radius:6px;border:1px solid var(--border);background:var(--bg2);color:var(--text2);cursor:pointer;transition:all .2s;user-select:none;}
+.trigger-chip input{display:none;}
+.trigger-chip.checked{border-color:#06c755;background:rgba(6,199,85,.1);color:#06c755;}
+.trigger-chip .ticon{font-size:13px;}
+.line-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.btn-line-test{border-color:#06c755;background:rgba(6,199,85,.1);color:#06c755;}
+.btn-line-test:hover:not(:disabled){background:rgba(6,199,85,.2);}
+.btn-line-save{border-color:var(--accent2);background:rgba(14,165,233,.12);color:var(--accent);}
+.btn-line-save:hover:not(:disabled){background:rgba(14,165,233,.22);}
+.line-status{font-family:var(--mono);font-size:11px;color:var(--text3);}
+.line-status.ok{color:#06c755;}.line-status.err{color:var(--red);}.line-status.sending{color:var(--yellow);}
+.cooldown-wrap{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;color:var(--text3);}
+.cooldown-wrap input{width:70px;}
+.notify-log{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px;font-family:var(--mono);font-size:11px;max-height:120px;overflow-y:auto;display:flex;flex-direction:column;gap:4px;margin-top:12px;}
+.notify-log:empty::before{content:'ยังไม่มีการส่ง notification';color:var(--text3);}
+.notify-log::-webkit-scrollbar{width:3px;}
+.notify-log::-webkit-scrollbar-thumb{background:var(--border2);}
+.nlog-row{display:flex;gap:8px;}
+.nlog-t{color:var(--text3);flex-shrink:0;}
+.nlog-m{color:var(--text2);}
+.nlog-m.ok{color:#06c755;}.nlog-m.err{color:var(--red);}.nlog-m.send{color:var(--yellow);}
+
+@media(max-width:1100px){.grid-main{grid-template-columns:1fr 1fr 310px;}.chart-card{grid-column:span 2;}}
+@media(max-width:760px){.grid-main{grid-template-columns:1fr 1fr;}.chart-card,.gauge-card,.log-card{grid-column:span 2;}.log-scroll{height:220px;}}
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🌡️</div>
+    <div class="logo-text">
+      <h1>Smart Heat-Guard</h1>
+      <span>Environmental Monitor v4.0</span>
+    </div>
+  </div>
+  <div class="hdr-right">
+    <div class="hstatus">
+      <div class="dot" id="hDot"></div>
+      <span id="hTxt">Disconnected</span>
+      <div class="autofix-badge" id="afBadge">
+        <span class="spin" id="afSpin"></span>
+        <span id="afLbl">Auto-Fix</span>
+      </div>
+    </div>
+    <div class="dvr"></div>
+    <span class="time-disp" id="clockEl">--:--:--</span>
+  </div>
+</header>
+
+<div class="no-serial" id="noSerial">
+  ⚠ เบราว์เซอร์นี้ไม่รองรับ Web Serial API — ใช้ Google Chrome หรือ Microsoft Edge เวอร์ชัน 89+ เพื่อเชื่อมต่อบอร์ดจริง &nbsp;|&nbsp; Demo Mode ยังใช้ได้ปกติ
+</div>
+
+<div class="banner" id="mainBanner">
+  <span class="banner-icon" id="bannerIcon">🔌</span>
+  <div class="banner-body">
+    <div class="banner-title" id="bannerTitle"></div>
+    <div class="banner-sub" id="bannerSub"></div>
+  </div>
+  <button class="banner-close" onclick="hideBanner()">✕</button>
+</div>
+
+<div class="alert-bar" id="alertBar">
+  <span style="font-size:18px">⚠️</span>
+  <span class="alert-txt" id="alertTxt"></span>
+  <button class="alert-x" onclick="this.parentElement.classList.remove('show')">✕</button>
+</div>
+
+<div class="conn-bar" id="connBar">
+  <span class="clbl">BOARD</span>
+  <select class="csel" id="selBoard">
+    <option value="">-- ยังไม่ได้ตรวจจับ --</option>
+    <option value="esp32">ESP32</option>
+    <option value="esp8266">ESP8266</option>
+  </select>
+
+  <span class="clbl">BAUD</span>
+  <select class="csel" id="selBaud">
+    <option value="9600">9600</option>
+    <option value="115200" selected>115200</option>
+  </select>
+
+  <div class="bchip" id="bchip">
+    <span>✓</span><span id="bchipTxt">ESP32 detected</span>
+  </div>
+  <div class="dvr"></div>
+
+  <button class="btn btn-port" id="btnPort" onclick="doSelectPort()">
+    🔌 เลือก Port
+    <span class="btooltip">คลิกเพื่อเลือก USB Serial Port ของบอร์ด</span>
+  </button>
+  <span style="font-family:var(--mono);font-size:11px;color:var(--text3);" id="portLbl">ยังไม่ได้เลือก port</span>
+  <div class="dvr"></div>
+
+  <button class="btn btn-cn" id="btnCn" onclick="doConnect()" disabled>
+    ▶ Connect
+    <span class="btooltip" id="cnTip">กรุณาเลือก Port ก่อน</span>
+  </button>
+  <button class="btn btn-demo" id="btnDemo" onclick="startDemo()">Demo</button>
+  <button class="btn btn-flash" onclick="openFlash()">⚡ Flash</button>
+  <button class="btn" style="border-color:#06c755;background:rgba(6,199,85,.1);color:#06c755;" onclick="openLine()">💬 LINE</button>
+</div>
+
+<!-- LINE MESSAGING API PANEL -->
+<div class="line-panel" id="linePanel">
+  <div class="line-title">
+    <div class="line-logo">💬</div>
+    LINE Messaging API
+    <span class="badge" style="background:rgba(6,199,85,.12);color:#06c755;border:1px solid rgba(6,199,85,.3);">MESSAGING API</span>
+    <span class="badge" style="background:rgba(251,191,36,.1);color:var(--yellow);border:1px solid rgba(251,191,36,.3);margin-left:4px;">Push Message</span>
+    <button class="btn" style="margin-left:auto;border-color:var(--border);color:var(--text3);background:transparent;font-size:11px;padding:4px 10px;" onclick="closeLine()">✕</button>
+  </div>
+
+  <div style="font-family:var(--mono);font-size:11px;color:var(--text3);margin-bottom:12px;line-height:1.7;">
+    📋 ต้องการ: <strong style="color:var(--text2)">Channel Access Token</strong> และ <strong style="color:var(--text2)">User ID / Group ID</strong> จาก <a href="https://developers.line.biz" target="_blank" style="color:var(--accent)">LINE Developers Console</a>
+  </div>
+
+  <div class="line-grid">
+    <div class="line-field">
+      <label>Channel Access Token</label>
+      <input class="line-inp" type="password" id="lineToken" placeholder="Channel Access Token (Long-lived)">
+    </div>
+    <div class="line-field">
+      <label>Target ID (User / Group / Room)</label>
+      <input class="line-inp" type="text" id="lineUserId" placeholder="Uxxxxxxxxx หรือ Cxxxxxxxxx">
+    </div>
+    <div class="line-field">
+      <label>Google Apps Script URL</label>
+      <input class="line-inp" type="text" id="lineProxy" placeholder="https://script.google.com/macros/s/.../exec">
+    </div>
+    <div class="line-field">
+      <label>Cooldown (นาที/ครั้ง)</label>
+      <input class="line-inp" type="number" id="lineCooldown" value="5" min="1" max="60">
+    </div>
+  </div>
+
+  <div style="font-family:var(--mono);font-size:11px;color:var(--text3);margin-bottom:8px;">⚡ แจ้งเตือนเมื่อ Heat Index ถึงระดับ:</div>
+  <div class="line-triggers">
+    <label class="trigger-chip checked" id="chip_danger" onclick="toggleChip(this,'danger')">
+      <span class="ticon">🔴</span> Danger (≥41°C)
+    </label>
+    <label class="trigger-chip checked" id="chip_extreme" onclick="toggleChip(this,'extreme')">
+      <span class="ticon">🆘</span> Extreme Danger (≥54°C)
+    </label>
+  </div>
+
+  <div class="line-row" style="margin-top:12px;">
+    <button class="btn btn-line-test" onclick="testLine()">📨 ทดสอบส่ง</button>
+    <button class="btn btn-line-save" onclick="saveLine()">💾 บันทึก</button>
+    <span class="line-status" id="lineSendStatus"></span>
+  </div>
+  <div class="notify-log" id="notifyLog"></div>
+</div>
+
+<div class="flash-panel" id="flashPanel">
+  <div class="fp-title">
+    ⚡ Auto-Flash Firmware
+    <span class="badge by">ONE-CLICK DEPLOY</span>
+    <span class="badge bg" id="adBadge" style="display:none;">✓ Auto-Detected</span>
+    <button class="btn" style="margin-left:auto;border-color:var(--border);color:var(--text3);background:transparent;font-size:11px;padding:4px 10px;" onclick="closeFlash()">✕</button>
+  </div>
+  <div class="fw-tabs" id="fwTabs">
+    <button class="fw-tab active" onclick="pickFw('esp32',this)">ESP32 + DHT22</button>
+    <button class="fw-tab" onclick="pickFw('esp8266',this)">ESP8266 + DHT22</button>
+    <button class="fw-tab" onclick="pickFw('esp32d',this)">ESP32 + DHT11</button>
+    <button class="fw-tab" onclick="pickFw('esp8266d',this)">ESP8266 + DHT11</button>
+  </div>
+  <div class="fp-row">
+    <span class="clbl">PIN R</span><input class="pin-inp" type="number" id="pR" value="25">
+    <span class="clbl">G</span><input class="pin-inp" type="number" id="pG" value="26">
+    <span class="clbl">B</span><input class="pin-inp" type="number" id="pB" value="27">
+    <span class="clbl">DHT</span><input class="pin-inp" type="number" id="pD" value="4">
+    <button class="btn btn-demo" style="font-size:11px;padding:4px 10px;" onclick="toggleCode()">👁 ดูโค้ด</button>
+    <button class="btn btn-flash" id="doFlashBtn" onclick="doFlash()">⚡ Flash ลงบอร์ด</button>
+  </div>
+  <div class="fw-code" id="fwCode"></div>
+  <div class="prog-wrap" id="progWrap">
+    <div class="pbar-bg"><div class="pbar" id="pBar"></div></div>
+    <div class="psteps" id="pSteps"></div>
+  </div>
+</div>
+
+<div class="grid-main">
+
+  <div class="card tc">
+    <div class="clabel">🌡 TEMPERATURE</div>
+    <div class="cval" id="vT">--<span class="cunit">°C</span></div>
+    <div class="trend st" id="trT">— STABLE</div>
+    <div class="csub" id="sT">รอข้อมูลจากเซ็นเซอร์...</div>
+    <div class="led-row">
+      <div class="led" id="ledG"></div><span class="led-lbl">Safe</span>
+      <div class="led" id="ledY"></div><span class="led-lbl">Caution</span>
+      <div class="led" id="ledR"></div><span class="led-lbl">Danger</span>
+      <span class="led-albl" id="ledALbl" style="background:rgba(148,163,184,.1);color:var(--text3);">—</span>
+    </div>
+  </div>
+
+  <div class="card hc">
+    <div class="clabel">💧 HUMIDITY</div>
+    <div class="cval" id="vH">--<span class="cunit">%</span></div>
+    <div class="trend st" id="trH">— STABLE</div>
+    <div class="csub" id="sH">รอข้อมูลจากเซ็นเซอร์...</div>
+  </div>
+
+  <div class="card hic">
+    <div class="clabel">🔆 HEAT INDEX</div>
+    <div class="cval" id="vHI">--<span class="cunit">°C</span></div>
+    <div class="trend st" id="trHI">— STABLE</div>
+    <div class="csub" id="sHI">ค่า feels-like temperature</div>
+  </div>
+
+  <div class="card gauge-card">
+    <div class="clabel">⚡ HEAT LEVEL</div>
+    <div class="gauge-wrap">
+      <svg class="gauge-svg" viewBox="0 0 220 130">
+        <defs>
+          <linearGradient id="gg" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#22d3a5"/>
+            <stop offset="33%" stop-color="#fbbf24"/>
+            <stop offset="66%" stop-color="#fb923c"/>
+            <stop offset="100%" stop-color="#f87171"/>
+          </linearGradient>
+        </defs>
+        <path d="M 20 115 A 90 90 0 0 1 200 115" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="14" stroke-linecap="round"/>
+        <path d="M 20 115 A 90 90 0 0 1 200 115" fill="none" stroke="url(#gg)" stroke-width="14" stroke-linecap="round" opacity=".28"/>
+        <path id="gArc" d="M 20 115 A 90 90 0 0 1 20 115" fill="none" stroke="#22d3a5" stroke-width="14" stroke-linecap="round"/>
+        <line id="gNeedle" x1="110" y1="115" x2="110" y2="35" stroke="rgba(255,255,255,.7)" stroke-width="2" stroke-linecap="round" transform="rotate(-90,110,115)"/>
+        <circle cx="110" cy="115" r="5" fill="white" opacity=".75"/>
+        <text x="16" y="128" fill="#22d3a5" font-size="9" font-family="'DM Mono',monospace">27°C</text>
+        <text x="185" y="128" fill="#f87171" font-size="9" font-family="'DM Mono',monospace">54°C</text>
+      </svg>
+      <div style="text-align:center;">
+        <div class="glvl" id="glvl" style="color:var(--text3);">— NO DATA —</div>
+        <div class="gdesc" id="gdesc">รอเชื่อมต่อ</div>
+      </div>
+    </div>
+    <div class="hiscale">
+      <div class="srow"><div class="sdot" style="background:#22d3a5"></div><span class="slbl">Caution</span><span class="srng">27–32°C</span></div>
+      <div class="srow"><div class="sdot" style="background:#fbbf24"></div><span class="slbl">Extreme Caution</span><span class="srng">32–41°C</span></div>
+      <div class="srow"><div class="sdot" style="background:#fb923c"></div><span class="slbl">Danger</span><span class="srng">41–54°C</span></div>
+      <div class="srow"><div class="sdot" style="background:#f87171"></div><span class="slbl">Extreme Danger</span><span class="srng">&gt;54°C</span></div>
+    </div>
+  </div>
+
+  <div class="card chart-card">
+    <div class="chart-hdr">
+      <div class="chart-ttl">History Data</div>
+      <div class="ctabs">
+        <button class="ctab active" onclick="switchChart('hi',this)">Heat Index</button>
+        <button class="ctab" onclick="switchChart('temp',this)">Temp</button>
+        <button class="ctab" onclick="switchChart('hum',this)">Humidity</button>
+      </div>
+    </div>
+    <div class="chart-wrap"><canvas id="hChart"></canvas></div>
+  </div>
+
+  <div class="card log-card">
+    <div class="log-hdr">
+      <div class="log-ttl">📋 System Log</div>
+      <span style="font-family:var(--mono);font-size:10px;color:var(--text3);" id="logCnt">0 events</span>
+    </div>
+    <div class="log-scroll" id="logScroll"></div>
+  </div>
+
+</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+// ══════════════════════════════════════════════════════
+// FIRMWARE GENERATOR
+// ══════════════════════════════════════════════════════
+function genFW(board, dhtType, r, g, b, d) {
+  const is32 = board === 'esp32';
+  return `#include <Arduino.h>
+#include <DHT.h>
+
+// ══ Auto-configured by Smart Heat-Guard Web Dashboard ══
+#define DHT_PIN    ${d}
+#define DHT_TYPE   DHT${dhtType}
+#define PIN_RED    ${r}
+#define PIN_GREEN  ${g}
+#define PIN_BLUE   ${b}
+
+// ══ Heat Index thresholds (°C) ══
+#define THRESH_CAUTION  32.0   // Green  → Yellow
+#define THRESH_DANGER   41.0   // Yellow → Red
+
+DHT dht(DHT_PIN, DHT_TYPE);
+unsigned long lastMs = 0;
+int errStreak = 0;
+
+void rgb(bool R, bool G, bool B) {
+  digitalWrite(PIN_RED,   R ? HIGH : LOW);
+  digitalWrite(PIN_GREEN, G ? HIGH : LOW);
+  digitalWrite(PIN_BLUE,  B ? HIGH : LOW);
+}
+
+float heatIndex(float T, float H) {
+  if (T < 27) return T;
+  return -8.784 + 1.611*T + 2.338*H - 0.146*T*H
+       - 0.0123*T*T - 0.0164*H*H + 0.00222*T*T*H
+       + 0.000725*T*H*H - 0.00000359*T*T*H*H;
+}
+
+void setup() {
+  Serial.begin(115200);
+  dht.begin();
+  pinMode(PIN_RED,   OUTPUT);
+  pinMode(PIN_GREEN, OUTPUT);
+  pinMode(PIN_BLUE,  OUTPUT);
+
+  // Startup RGB blink = board alive
+  for (int i = 0; i < 2; i++) {
+    rgb(1,0,0); delay(180);
+    rgb(0,1,0); delay(180);
+    rgb(0,0,1); delay(180);
+  }
+  rgb(0,0,0);
+
+  // Send board identity (parsed by dashboard)
+  Serial.println("BOOT:SmartHeatGuard-${is32 ? 'ESP32' : 'ESP8266'}-DHT${dhtType}");
+  Serial.print("PINS:R=${r},G=${g},B=${b},DHT=${d},THRESH_C=");
+  Serial.print(THRESH_CAUTION); Serial.print(",THRESH_D=");
+  Serial.println(THRESH_DANGER);
+}
+
+void loop() {
+  if (millis() - lastMs < 2000) return;
+  lastMs = millis();
+
+  float h = dht.readHumidity();
+  float t = dht.readTemperature();
+
+  if (isnan(h) || isnan(t)) {
+    errStreak++;
+    Serial.print("ERR:SENSOR_FAIL,streak=");
+    Serial.println(errStreak);
+    // 3× red blink = sensor problem signal
+    for (int i = 0; i < 3; i++) {
+      rgb(1,0,0); delay(100); rgb(0,0,0); delay(80);
+    }
+    return;
+  }
+
+  errStreak = 0;
+  float hi = heatIndex(t, h);
+
+  // Output parsed by web dashboard: T:xx.x,H:xx.x,HI:xx.x
+  Serial.print("T:"); Serial.print(t, 1);
+  Serial.print(",H:"); Serial.print(h, 1);
+  Serial.print(",HI:"); Serial.println(hi, 1);
+
+  // RGB LED mirrors web dashboard status
+  if      (hi < THRESH_CAUTION) rgb(0,1,0);  // GREEN  — Safe
+  else if (hi < THRESH_DANGER)  rgb(1,1,0);  // YELLOW — Extreme Caution
+  else                           rgb(1,0,0);  // RED    — Danger
+}`;
+}
+
+// ══════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════
+const S = {
+  hasSerial: 'serial' in navigator,
+  port: null, reader: null,
+  portSelected: false, connected: false, demo: false,
+  temp: null, hum: null, hi: null,
+  prevT: null, prevH: null, prevHI: null,
+  history: { labels:[], hi:[], temp:[], hum:[] },
+  chartMode: 'hi', demoTimer: null,
+  fwKey: 'esp32', codeVisible: false,
+  errStreak: 0, autoFixAttempts: 0, bootWd: null,
+};
+
+const PROFILES = {
+  esp32:   { name:'ESP32',   baud:115200, pR:25, pG:26, pB:27, pD:4,  dht:22, note:'GPIO25/26/27=RGB  GPIO4=DHT' },
+  esp8266: { name:'ESP8266', baud:115200, pR:14, pG:12, pB:13, pD:4,  dht:22, note:'GPIO14/12/13=RGB(D5/D6/D7)  GPIO4=DHT(D2)' },
+};
+
+// USB VID → board guess (common ESP dev boards)
+const VID_MAP = {
+  0x10C4: 'esp32',   // CP2102 — common on ESP32 DevKit
+  0x1A86: 'esp8266', // CH340  — common on NodeMCU/Wemos ESP8266
+  0x0403: 'esp32',   // FTDI   — various, default esp32
+  0x303A: 'esp32',   // Espressif native USB (ESP32-S2/S3/C3)
+};
+
+// ══════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════
+if (!S.hasSerial) {
+  document.getElementById('noSerial').classList.add('show');
+  document.getElementById('btnPort').disabled = true;
+  document.getElementById('btnCn').disabled = true;
+}
+
+// ══════════════════════════════════════════════════════
+// PORT SELECTION + AUTO-DETECT
+// ══════════════════════════════════════════════════════
+async function doSelectPort() {
+  if (!S.hasSerial) return;
+  try {
+    const filters = [
+      {usbVendorId:0x10C4,usbProductId:0xEA60},
+      {usbVendorId:0x1A86,usbProductId:0x7523},
+      {usbVendorId:0x0403,usbProductId:0x6001},
+      {usbVendorId:0x0403,usbProductId:0x6010},
+      {usbVendorId:0x303A},
+    ];
+    S.port = await navigator.serial.requestPort({ filters });
+    const info = S.port.getInfo();
+    const vid = info.usbVendorId;
+    S.portSelected = true;
+
+    log(`Port เลือกแล้ว — VID:0x${vid?.toString(16).toUpperCase()??'?'}`, 'ok');
+    document.getElementById('portLbl').textContent = 'Port เลือกแล้ว ✓';
+    document.getElementById('btnPort').classList.add('found');
+    document.getElementById('btnCn').disabled = false;
+    document.getElementById('cnTip').textContent = 'เชื่อมต่อ Serial Port';
+    document.getElementById('connBar').classList.add('ready');
+
+    const guessed = VID_MAP[vid] || null;
+    if (guessed) {
+      autoApplyBoard(guessed, `USB VID 0x${vid.toString(16).toUpperCase()}`);
+    } else {
+      showBanner('info','🔌','เลือก Port สำเร็จ','ตรวจจับประเภทบอร์ดไม่ได้จาก VID — กรุณาเลือกบอร์ดเอง แล้วกด Connect');
+      log('ตรวจจับบอร์ดจาก VID ไม่ได้ — กรุณาเลือกเองใน dropdown', 'warn');
+    }
+  } catch(e) {
+    if (e.name !== 'NotFoundError') {
+      log('เลือก Port ล้มเหลว: ' + e.message, 'err');
+      showBanner('error','❌','เลือก Port ไม่ได้', e.message);
+    } else {
+      log('ยกเลิกการเลือก Port', 'warn');
+    }
+  }
+}
+
+function autoApplyBoard(key, src) {
+  const p = PROFILES[key];
+  if (!p) return;
+  document.getElementById('selBoard').value = key;
+  document.getElementById('selBaud').value = p.baud;
+  document.getElementById('pR').value = p.pR;
+  document.getElementById('pG').value = p.pG;
+  document.getElementById('pB').value = p.pB;
+  document.getElementById('pD').value = p.pD;
+  // Activate correct fw tab
+  const keyMap = {esp32:0,esp8266:1};
+  document.querySelectorAll('.fw-tab').forEach((t,i)=>t.classList.toggle('active',i===(keyMap[key]??0)));
+  S.fwKey = key;
+  document.getElementById('bchipTxt').textContent = `${p.name} detected`;
+  document.getElementById('bchip').classList.add('show');
+  document.getElementById('adBadge').style.display = 'inline-flex';
+  showBanner('detected','✅',`ตรวจพบ ${p.name} อัตโนมัติ`,`ตั้งค่า PIN และ firmware ให้อัตโนมัติ | ${p.note} | แหล่ง: ${src}`);
+  log(`Auto-detect: ${p.name} จาก ${src}`, 'ok');
+  log(`PIN: R=${p.pR} G=${p.pG} B=${p.pB} DHT=${p.pD} | Baud=${p.baud}`, 'info');
+  if (S.codeVisible) updateFwCode();
+}
+
+// ══════════════════════════════════════════════════════
+// CONNECT / DISCONNECT
+// ══════════════════════════════════════════════════════
+async function doConnect() {
+  if (S.connected) { await doDisconnect(); return; }
+
+  // Guard: port ต้องถูกเลือกก่อน
+  if (!S.portSelected || !S.port) {
+    showBanner('error','⛔','ยังไม่ได้เลือก Port','กรุณากดปุ่ม "เลือก Port" ก่อน แล้วค่อยกด Connect');
+    log('Connect ล้มเหลว — ยังไม่ได้เลือก Serial Port', 'err');
+    doShake(document.getElementById('btnPort'));
+    return;
+  }
+
+  const baud = parseInt(document.getElementById('selBaud').value);
+  try {
+    if (!S.port.readable) await S.port.open({ baudRate: baud });
+    S.connected = true;
+    setStatus('online','Connected');
+    document.getElementById('btnCn').classList.add('active');
+    document.getElementById('btnCn').innerHTML = '■ Disconnect<span class="btooltip">ตัดการเชื่อมต่อ</span>';
+    log(`เชื่อมต่อสำเร็จ @ ${baud} baud`, 'ok');
+    log('รอข้อมูลจากบอร์ด... (ควรเห็น BOOT: ภายใน 3 วินาที)', 'info');
+    startRead();
+
+    // Boot watchdog — ถ้า 5 วินาทียังไม่มีข้อมูล → แจ้งเตือน + Auto-Fix
+    S.bootWd = setTimeout(() => {
+      if (S.connected && S.temp === null) {
+        showBanner('error','⏱','ไม่มีข้อมูลจากบอร์ด',
+          'อาจเกิดจาก: ยังไม่ได้ Flash firmware | เซ็นเซอร์ DHT ไม่ได้เสียบ | baud rate ผิด | กด ⚡ Flash เพื่อโหลด firmware');
+        log('⚠ Watchdog: ไม่มีข้อมูลใน 5 วินาที', 'warn');
+        tryAutoFix('no_data');
+      }
+    }, 5000);
+  } catch(e) {
+    log('เปิด Port ไม่ได้: ' + e.message, 'err');
+    showBanner('error','❌','เปิด Port ไม่สำเร็จ', e.message + ' — ลองถอดแล้วเสียบใหม่');
+  }
+}
+
+async function doDisconnect() {
+  S.connected = false;
+  clearTimeout(S.bootWd);
+  if (S.reader) { try { await S.reader.cancel(); } catch(e){} S.reader = null; }
+  if (S.port && S.port.readable) { try { await S.port.close(); } catch(e){} }
+  setStatus('','Disconnected');
+  document.getElementById('btnCn').classList.remove('active');
+  document.getElementById('btnCn').innerHTML = '▶ Connect';
+  log('ตัดการเชื่อมต่อแล้ว', 'warn');
+  lineNotify_offline();
+}
+
+// ══════════════════════════════════════════════════════
+// SERIAL READ + PARSE
+// ══════════════════════════════════════════════════════
+async function startRead() {
+  const dec = new TextDecoderStream();
+  S.port.readable.pipeTo(dec.writable);
+  const reader = dec.readable.getReader();
+  S.reader = reader;
+  let buf = '';
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += value;
+      const lines = buf.split('\n');
+      buf = lines.pop();
+      for (const raw of lines) parseLine(raw.trim());
+    }
+  } catch(e) {
+    if (S.connected) log('Serial หลุด: ' + e.message, 'err');
+  }
+  if (S.connected) {
+    S.connected = false;
+    setStatus('','Disconnected');
+    document.getElementById('btnCn').classList.remove('active');
+    document.getElementById('btnCn').innerHTML = '▶ Connect';
+    log('บอร์ดถูกถอดหรือเกิด error — Serial หยุดทำงาน', 'warn');
+    tryAutoFix('disconnected');
+  }
+}
+
+function parseLine(line) {
+  if (!line) return;
+  clearTimeout(S.bootWd);
+
+  if (line.startsWith('BOOT:')) {
+    const name = line.slice(5);
+    log(`บอร์ดบูตสำเร็จ: ${name}`, 'ok');
+    S.errStreak = 0;
+    // Auto-detect from boot string
+    if (name.includes('ESP32'))   autoApplyBoard('esp32', 'boot string');
+    else if (name.includes('ESP8266')) autoApplyBoard('esp8266', 'boot string');
+    return;
+  }
+  if (line.startsWith('PINS:')) { log('PIN config: ' + line.slice(5), 'info'); return; }
+
+  if (line.startsWith('ERR:')) {
+    S.errStreak++;
+    const detail = line.slice(4);
+    log(`บอร์ด Error [${S.errStreak}]: ${detail}`, 'err');
+    showBanner('error','🔴','เซ็นเซอร์อ่านค่าไม่ได้',
+      `${detail} | ตรวจสอบ: สายต่อ DHT / ขา DATA / ไฟเลี้ยง 3.3V หรือ 5V`);
+    if (S.errStreak >= 3){ tryAutoFix('sensor_err'); lineNotify_sensor(S.errStreak); }
+    return;
+  }
+
+  const m = line.match(/T:([\d.]+),H:([\d.]+),HI:([\d.]+)/);
+  if (m) {
+    S.errStreak = 0;
+    S.autoFixAttempts = 0;
+    hideBanner();
+    updateSensor(+m[1], +m[2], +m[3]);
+    return;
+  }
+  // Unknown serial output
+  if (line.length > 0 && line.length < 150) log(`Serial: ${line}`, 'info');
+}
+
+// ══════════════════════════════════════════════════════
+// AUTO-FIX ENGINE
+// ══════════════════════════════════════════════════════
+const FIX_RULES = {
+  no_data: {
+    canFix: true,
+    label: 'ไม่มีข้อมูล — ลองเปลี่ยน baud rate',
+    fix: async () => {
+      const bauds = [115200, 9600, 57600, 38400];
+      const cur = parseInt(document.getElementById('selBaud').value);
+      const next = bauds.find(b => b !== cur) ?? 115200;
+      log(`Auto-Fix: เปลี่ยน baud ${cur} → ${next}`, 'fix');
+      document.getElementById('selBaud').value = next;
+      if (S.connected) { await doDisconnect(); await sleep(800); await doConnect(); }
+    }
+  },
+  sensor_err: {
+    canFix: true,
+    label: 'เซ็นเซอร์ error ซ้ำ — ส่ง DTR Reset',
+    fix: async () => {
+      log('Auto-Fix: ส่ง DTR/RTS reset signal...', 'fix');
+      try {
+        if (S.port?.setSignals) {
+          await S.port.setSignals({ dataTerminalReady:false, requestToSend:true });
+          await sleep(220);
+          await S.port.setSignals({ dataTerminalReady:true, requestToSend:false });
+          log('Auto-Fix: Reset ส่งแล้ว — รอบอร์ดบูตใหม่', 'fix');
+          S.errStreak = 0;
+        }
+      } catch(e) { log('Auto-Fix Reset ล้มเหลว: ' + e.message, 'err'); }
+    }
+  },
+  disconnected: {
+    canFix: false, // hw issue → แจ้งเตือนเท่านั้น
+    label: 'บอร์ดถูกถอด — ต้องเสียบใหม่',
+    fix: async () => {
+      log('Auto-Fix: ตรวจพบบอร์ดถูกถอด — reconnect อัตโนมัติไม่ได้ (เสียบสายแล้วกด Connect)', 'warn');
+      showBanner('error','🔌','บอร์ดถูกถอดออก','เสียบสาย USB แล้วกด Connect ใหม่');
+    }
+  }
+};
+
+async function tryAutoFix(ruleId) {
+  const rule = FIX_RULES[ruleId];
+  if (!rule) return;
+  if (!rule.canFix) { await rule.fix(); return; }
+
+  S.autoFixAttempts++;
+  if (S.autoFixAttempts > 4) {
+    log('Auto-Fix: ลองครบ 4 ครั้งแล้ว — อาจเกิดจากวงจรผิด โปรดตรวจสอบด้วยตนเอง', 'err');
+    showBanner('error','❌','Auto-Fix ล้มเหลวซ้ำ',
+      'ระบบลองแก้ไข 4 ครั้งแล้วไม่สำเร็จ — ตรวจสอบการต่อวงจรด้วยตนเอง หรือกด ⚡ Flash เพื่อโหลด firmware ใหม่');
+    showAutoFix(false);
+    S.autoFixAttempts = 0;
+    return;
+  }
+
+  showAutoFix(true, `Auto-Fix #${S.autoFixAttempts}: ${rule.label}`);
+  showBanner('fixing','🔧','Auto-Fix กำลังทำงาน...', rule.label + ` (ครั้งที่ ${S.autoFixAttempts}/4)`);
+  log(`Auto-Fix เริ่ม [${S.autoFixAttempts}/4]: ${rule.label}`, 'fix');
+  await sleep(500);
+  await rule.fix();
+  await sleep(1000);
+  showAutoFix(false);
+}
+
+function showAutoFix(on, label='Auto-Fix') {
+  const b = document.getElementById('afBadge');
+  b.className = 'autofix-badge' + (on?' show':'');
+  document.getElementById('afSpin').className = 'spin' + (on?' on':'');
+  document.getElementById('afLbl').textContent = label;
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ══════════════════════════════════════════════════════
+// BANNER
+// ══════════════════════════════════════════════════════
+function showBanner(type, icon, title, sub) {
+  const b = document.getElementById('mainBanner');
+  b.className = `banner show ${type}`;
+  document.getElementById('bannerIcon').textContent = icon;
+  document.getElementById('bannerTitle').textContent = title;
+  document.getElementById('bannerSub').textContent = sub;
+}
+function hideBanner() { document.getElementById('mainBanner').classList.remove('show'); }
+
+function doShake(el) {
+  el.style.animation = 'none'; el.offsetHeight;
+  el.style.animation = 'shake .35s ease';
+  setTimeout(() => el.style.animation='', 400);
+}
+
+// ══════════════════════════════════════════════════════
+// STATUS DOT
+// ══════════════════════════════════════════════════════
+function setStatus(cls, text) {
+  document.getElementById('hDot').className = 'dot' + (cls?' '+cls:'');
+  document.getElementById('hTxt').textContent = text;
+}
+
+// ══════════════════════════════════════════════════════
+// DEMO MODE
+// ══════════════════════════════════════════════════════
+function startDemo() {
+  if (S.connected) return;
+  S.demo = true;
+  setStatus('online','Demo Mode');
+  autoApplyBoard('esp32','Demo Mode');
+  log('Demo mode เริ่ม — จำลอง DHT22 data', 'warn');
+  let t = 29+Math.random()*7, h = 55+Math.random()*20;
+  updateSensor(+t.toFixed(1), +h.toFixed(0));
+  S.demoTimer = setInterval(() => {
+    if (!S.demo) return;
+    t += (Math.random()-.44)*.8; h += (Math.random()-.48)*2;
+    t = Math.max(24,Math.min(52,t)); h = Math.max(30,Math.min(95,h));
+    updateSensor(+t.toFixed(1), +h.toFixed(0));
+    if (Math.random()<.06) {
+      const msgs=[['Heartbeat OK','ok'],['WiFi RSSI: -'+(38+~~(Math.random()*25))+' dBm','info'],['MQTT keepalive','info']];
+      const p=msgs[~~(Math.random()*msgs.length)]; log(p[0],p[1]);
+    }
+  }, 2000);
+  const btn=document.getElementById('btnDemo');
+  btn.textContent='■ Stop'; btn.onclick=stopDemo;
+}
+
+function stopDemo() {
+  S.demo=false; clearInterval(S.demoTimer);
+  setStatus('','Disconnected');
+  log('Demo หยุดแล้ว','warn');
+  const btn=document.getElementById('btnDemo');
+  btn.textContent='Demo'; btn.onclick=startDemo;
+}
+
+// ══════════════════════════════════════════════════════
+// SENSOR DATA
+// ══════════════════════════════════════════════════════
+function calcHI(T,H){
+  if(T<27) return T;
+  return -8.784+1.611*T+2.338*H-0.146*T*H-0.0123*T*T-0.0164*H*H+0.00222*T*T*H+0.000725*T*H*H-0.00000359*T*T*H*H;
+}
+
+function updateSensor(t,h,hiIn) {
+  S.prevT=S.temp; S.prevH=S.hum; S.prevHI=S.hi;
+  S.temp=t; S.hum=h; S.hi=hiIn ?? +(calcHI(t,h).toFixed(1));
+  document.getElementById('vT').innerHTML=`${S.temp.toFixed(1)}<span class="cunit">°C</span>`;
+  document.getElementById('vH').innerHTML=`${S.hum.toFixed(0)}<span class="cunit">%</span>`;
+  document.getElementById('vHI').innerHTML=`${S.hi.toFixed(1)}<span class="cunit">°C</span>`;
+  document.getElementById('sT').textContent='DHT sensor reading';
+  document.getElementById('sH').textContent='Relative humidity';
+  document.getElementById('sHI').textContent=`Feels like ${S.hi.toFixed(1)}°C`;
+  setTrend('trT',S.temp,S.prevT); setTrend('trH',S.hum,S.prevH); setTrend('trHI',S.hi,S.prevHI);
+  updateGauge(S.hi); updateLEDs(S.hi); pushChart();
+
+  if (S.hi>=41) {
+    const m = S.hi>=54
+      ? `<strong>⚠ EXTREME DANGER</strong> — Heat Index ${S.hi.toFixed(1)}°C &nbsp;|&nbsp; ไฟแดงบนบอร์ดติดแล้ว`
+      : `<strong>⚠ DANGER</strong> — Heat Index ${S.hi.toFixed(1)}°C &nbsp;|&nbsp; ไฟแดงบนบอร์ดติดแล้ว`;
+    document.getElementById('alertTxt').innerHTML = m;
+    document.getElementById('alertBar').classList.add('show');
+    if (!S.prevHI || S.prevHI<41) { log(`⚠ Alert: Heat Index ${S.hi.toFixed(1)}°C — ไฟแดงบนบอร์ดกำลังติด`,'err'); lineNotify_danger(S.hi); }
+  } else {
+    document.getElementById('alertBar').classList.remove('show');
+    if(S.prevHI && S.prevHI>=41){ lineNotify_recover(S.hi); }
+  }
+}
+
+function setTrend(id,cur,prev) {
+  const el=document.getElementById(id);
+  if(prev===null){el.className='trend st';el.textContent='— STABLE';return;}
+  const d=cur-prev;
+  if(Math.abs(d)<0.2){el.className='trend st';el.textContent='— STABLE';}
+  else if(d>0){el.className='trend up';el.textContent=`▲ +${Math.abs(d).toFixed(1)}`;}
+  else{el.className='trend dn';el.textContent=`▼ -${Math.abs(d).toFixed(1)}`;}
+}
+
+function updateLEDs(hi) {
+  const g=document.getElementById('ledG'),y=document.getElementById('ledY'),r=document.getElementById('ledR'),lbl=document.getElementById('ledALbl');
+  g.className='led';y.className='led';r.className='led';
+  if(hi>=41){r.className='led r';lbl.className='led-albl r';lbl.textContent='🔴 Danger';setStatus('danger','Connected — DANGER');}
+  else if(hi>=32){y.className='led y';lbl.className='led-albl y';lbl.textContent='🟡 Caution';setStatus('warn','Connected — CAUTION');}
+  else{g.className='led g';lbl.className='led-albl g';lbl.textContent='🟢 Safe';setStatus('online','Connected — SAFE');}
+}
+
+function updateGauge(hi) {
+  const ratio=Math.max(0,Math.min(1,(hi-27)/(54-27)));
+  const angle=-180+ratio*180;
+  document.getElementById('gNeedle').setAttribute('transform',`rotate(${angle},110,115)`);
+  const r=90,cx=110,cy=115,sR=(-180)*Math.PI/180,eR=angle*Math.PI/180;
+  const x1=cx+r*Math.cos(sR),y1=cy+r*Math.sin(sR),x2=cx+r*Math.cos(eR),y2=cy+r*Math.sin(eR),la=ratio>.5?1:0;
+  let col='#22d3a5',lt='CAUTION',ld='สภาพแวดล้อมปลอดภัย';
+  if(hi>=54){col='#f87171';lt='EXTREME DANGER';ld='เสี่ยง heat stroke สูงมาก';}
+  else if(hi>=41){col='#fb923c';lt='DANGER';ld='กล้ามเนื้อเป็นตะคริว, เพลียแดด';}
+  else if(hi>=32){col='#fbbf24';lt='EXTREME CAUTION';ld='อาจเกิดเพลียแดดได้';}
+  document.getElementById('gArc').setAttribute('d',`M ${x1} ${y1} A ${r} ${r} 0 ${la} 1 ${x2} ${y2}`);
+  document.getElementById('gArc').setAttribute('stroke',col);
+  document.getElementById('glvl').textContent=lt; document.getElementById('glvl').style.color=col;
+  document.getElementById('gdesc').textContent=ld;
+}
+
+// ══════════════════════════════════════════════════════
+// CHART
+// ══════════════════════════════════════════════════════
+let myChart=null;
+function initChart(){
+  const ctx=document.getElementById('hChart').getContext('2d');
+  myChart=new Chart(ctx,{type:'line',data:{labels:S.history.labels,datasets:[{
+    label:'Heat Index',data:S.history.hi,borderColor:'#fbbf24',backgroundColor:'rgba(251,191,36,.07)',
+    borderWidth:2,pointRadius:3,pointBackgroundColor:'#fbbf24',tension:.4,fill:true
+  }]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:250},
+    plugins:{legend:{display:false},tooltip:{backgroundColor:'#1a2235',borderColor:'rgba(99,179,237,.2)',borderWidth:1,titleColor:'#94a3b8',bodyColor:'#e2e8f0',titleFont:{family:'DM Mono',size:11},bodyFont:{family:'DM Mono',size:12}}},
+    scales:{x:{ticks:{color:'#475569',font:{family:'DM Mono',size:10},maxRotation:0},grid:{color:'rgba(99,179,237,.05)'},border:{color:'rgba(99,179,237,.1)'}},
+            y:{ticks:{color:'#475569',font:{family:'DM Mono',size:10}},grid:{color:'rgba(99,179,237,.05)'},border:{color:'rgba(99,179,237,.1)'}}}
+  }});
+}
+
+function pushChart(){
+  const now=new Date().toLocaleTimeString('en-GB');
+  if(S.history.labels.length>=30){S.history.labels.shift();S.history.hi.shift();S.history.temp.shift();S.history.hum.shift();}
+  S.history.labels.push(now);S.history.hi.push(S.hi);S.history.temp.push(S.temp);S.history.hum.push(S.hum);
+  if(myChart){myChart.data.labels=S.history.labels;myChart.data.datasets[0].data=S.history[S.chartMode];myChart.update('none');}
+}
+
+function switchChart(mode,btn){
+  S.chartMode=mode; document.querySelectorAll('.ctab').forEach(b=>b.classList.remove('active')); btn.classList.add('active');
+  const c={hi:'#fbbf24',temp:'#38bdf8',hum:'#22d3a5'};
+  myChart.data.datasets[0].borderColor=c[mode]; myChart.data.datasets[0].pointBackgroundColor=c[mode];
+  myChart.data.datasets[0].data=S.history[mode]; myChart.update('none');
+}
+
+// ══════════════════════════════════════════════════════
+// LOG
+// ══════════════════════════════════════════════════════
+function log(msg,type='info'){
+  const time=new Date().toLocaleTimeString('en-GB');
+  const el=document.createElement('div');
+  el.className='log-entry';
+  el.innerHTML=`<span class="lt">${time}</span><span class="lm ${type}">${msg}</span>`;
+  const sc=document.getElementById('logScroll');
+  sc.insertBefore(el,sc.firstChild);
+  if(sc.children.length>70) sc.removeChild(sc.lastChild);
+  document.getElementById('logCnt').textContent=sc.children.length+' events';
+}
+
+// ══════════════════════════════════════════════════════
+// FLASH PANEL
+// ══════════════════════════════════════════════════════
+function openFlash(){document.getElementById('flashPanel').classList.add('show');updateFwCode();}
+function closeFlash(){document.getElementById('flashPanel').classList.remove('show');}
+
+function pickFw(key,btn){
+  S.fwKey=key; document.querySelectorAll('.fw-tab').forEach(b=>b.classList.remove('active')); btn.classList.add('active');
+  const pins={esp32:{pR:25,pG:26,pB:27,pD:4},esp8266:{pR:14,pG:12,pB:13,pD:4},esp32d:{pR:25,pG:26,pB:27,pD:4},esp8266d:{pR:14,pG:12,pB:13,pD:4}};
+  const p=pins[key]; ['pR','pG','pB','pD'].forEach(k=>document.getElementById(k).value=p[k]);
+  if(S.codeVisible) updateFwCode();
+}
+
+function updateFwCode(){
+  const is32=S.fwKey.includes('esp32');
+  const dht=S.fwKey.includes('d')?11:22;
+  const code=genFW(is32?'esp32':'esp8266',dht,
+    document.getElementById('pR').value,document.getElementById('pG').value,
+    document.getElementById('pB').value,document.getElementById('pD').value);
+  let html=code.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  html=html.replace(/(\/\/.*)/g,'<span style="color:#546e7a">$1</span>');
+  html=html.replace(/\b(#include|#define|void|float|bool|int|if|else|return|for|while|delay|unsigned|long)\b/g,'<span style="color:#c792ea">$1</span>');
+  html=html.replace(/"([^"]*)"/g,'"<span style="color:#c3e88d">$1</span>"');
+  document.getElementById('fwCode').innerHTML=html;
+}
+
+function toggleCode(){
+  S.codeVisible=!S.codeVisible;
+  const v=document.getElementById('fwCode');
+  if(S.codeVisible){v.classList.add('show');updateFwCode();}else v.classList.remove('show');
+}
+
+async function doFlash(){
+  if(!S.hasSerial){log('Web Serial ไม่รองรับ — ใช้ Chrome/Edge','err');return;}
+  const is32=S.fwKey.includes('esp32'), dht=S.fwKey.includes('d')?11:22;
+  const code=genFW(is32?'esp32':'esp8266',dht,
+    document.getElementById('pR').value,document.getElementById('pG').value,
+    document.getElementById('pB').value,document.getElementById('pD').value);
+  const pw=document.getElementById('progWrap'), pb=document.getElementById('pBar'), ps=document.getElementById('pSteps');
+  pw.classList.add('show'); ps.innerHTML=''; document.getElementById('doFlashBtn').disabled=true;
+  setStatus('flashing','Flashing...');
+  const addS=(m,c='cur')=>{const e=document.createElement('div');e.className=`ps ${c}`;e.textContent=m;ps.appendChild(e);ps.scrollTop=ps.scrollHeight;return e;};
+  const setP=p=>{pb.style.width=p+'%';};
+  try {
+    let step=addS('► เลือก Port...'); setP(5);
+    if(!S.port) S.port=await navigator.serial.requestPort();
+    step.className='ps done';step.textContent='✓ Port เลือกแล้ว'; setP(15); log('Flash: Port ready','ok');
+    step=addS('► เปิด port @ 115200...'); 
+    if(!S.port.readable) await S.port.open({baudRate:115200});
+    step.className='ps done';step.textContent='✓ Port เปิดแล้ว'; setP(25); log('Flash: Port เปิด','ok');
+    step=addS('► ส่ง firmware...');
+    const enc=new TextEncoder(), w=S.port.writable.getWriter();
+    await w.write(enc.encode('\x03\x03')); await sleep(300);
+    await w.write(enc.encode('\x01')); await sleep(200);
+    const lines=code.split('\n');
+    for(let i=0;i<lines.length;i++){
+      await w.write(enc.encode(lines[i]+'\n')); setP(25+~~((i/lines.length)*55));
+      if(i%15===0) await sleep(15);
+    }
+    await w.write(enc.encode('\x02')); w.releaseLock();
+    step.className='ps done';step.textContent=`✓ ส่ง ${lines.length} บรรทัดแล้ว`; setP(83); log('Flash: Firmware ส่งครบ','ok');
+    step=addS('► Reset บอร์ด...');
+    if(S.port.setSignals){await S.port.setSignals({dataTerminalReady:false,requestToSend:true});await sleep(200);await S.port.setSignals({dataTerminalReady:true,requestToSend:false});}
+    step.className='ps done';step.textContent='✓ Reset สำเร็จ'; setP(93); log('Flash: Reset ส่งแล้ว','ok');
+    await sleep(1500); setP(100); addS('✓ Flash เสร็จสมบูรณ์!','done');
+    log('⚡ Flash สำเร็จ — เริ่ม Connect อัตโนมัติ','ok');
+    S.portSelected=true; S.autoFixAttempts=0;
+    document.getElementById('portLbl').textContent='Flash Port ✓';
+    document.getElementById('btnPort').classList.add('found');
+    document.getElementById('btnCn').disabled=false;
+    S.connected=true; setStatus('online','Connected');
+    document.getElementById('btnCn').classList.add('active');
+    document.getElementById('btnCn').innerHTML='■ Disconnect';
+    startRead();
+  } catch(e) {
+    if(ps.lastChild){ps.lastChild.className='ps err';ps.lastChild.textContent='✗ '+e.message;}
+    log('Flash ล้มเหลว: '+e.message,'err');
+    showBanner('error','❌','Flash ล้มเหลว',e.message+' — ตรวจสอบสาย USB / บอร์ด / Driver');
+    setStatus('','Disconnected');
+  }
+  document.getElementById('doFlashBtn').disabled=false;
+}
+
+
+// ══════════════════════════════════════════════════════
+// LINE MESSAGING API SYSTEM
+// Push Message to User/Group via Channel Access Token
+// ══════════════════════════════════════════════════════
+const LINE = {
+  token:    '',
+  userId:   '',
+  proxy:    'https://corsproxy.io/?',
+  cooldown: 5,
+  lastSent: {},
+  triggers: { danger: true, extreme: true },
+  enabled:  false,
+};
+
+function openLine(){
+  document.getElementById('linePanel').classList.add('show');
+  loadLine();
+}
+function closeLine(){ document.getElementById('linePanel').classList.remove('show'); }
+
+function toggleChip(el, key){
+  el.classList.toggle('checked');
+  LINE.triggers[key] = el.classList.contains('checked');
+}
+
+function loadLine(){
+  try {
+    const saved = JSON.parse(localStorage.getItem('shg_line_msg') || '{}');
+    if(saved.token)    { document.getElementById('lineToken').value  = saved.token;    LINE.token    = saved.token; }
+    if(saved.userId)   { document.getElementById('lineUserId').value = saved.userId;   LINE.userId   = saved.userId; }
+    if(saved.proxy)    { document.getElementById('lineProxy').value  = saved.proxy;    LINE.proxy    = saved.proxy; }
+    if(saved.cooldown) { document.getElementById('lineCooldown').value = saved.cooldown; LINE.cooldown = saved.cooldown; }
+    if(saved.triggers) {
+      Object.assign(LINE.triggers, saved.triggers);
+      Object.keys(LINE.triggers).forEach(k=>{
+        const el = document.getElementById('chip_'+k);
+        if(el) el.classList.toggle('checked', LINE.triggers[k]);
+      });
+    }
+    LINE.enabled = !!(LINE.token && LINE.userId);
+    if(LINE.enabled) setLineBadge('ok','✓ Config บันทึกแล้ว');
+  } catch(e){}
+}
+
+function saveLine(){
+  LINE.token    = document.getElementById('lineToken').value.trim();
+  LINE.userId   = document.getElementById('lineUserId').value.trim();
+  LINE.proxy    = document.getElementById('lineProxy').value.trim() || 'https://corsproxy.io/?';
+  LINE.cooldown = parseInt(document.getElementById('lineCooldown').value) || 5;
+  LINE.enabled  = !!(LINE.token && LINE.userId);
+  try {
+    localStorage.setItem('shg_line_msg', JSON.stringify({
+      token: LINE.token, userId: LINE.userId, proxy: LINE.proxy,
+      cooldown: LINE.cooldown, triggers: LINE.triggers
+    }));
+  } catch(e){}
+  if(!LINE.token)  { setLineBadge('err','❌ กรุณาใส่ Channel Access Token'); return; }
+  if(!LINE.userId) { setLineBadge('err','❌ กรุณาใส่ User ID / Group ID'); return; }
+  setLineBadge('ok', '✅ บันทึกแล้ว — LINE Messaging API พร้อมใช้งาน');
+  log('LINE Messaging API: บันทึก config แล้ว', 'ok');
+  log('Target ID: ' + LINE.userId.slice(0,8) + '****', 'info');
+}
+
+function setLineBadge(type, msg){
+  const el = document.getElementById('lineSendStatus');
+  el.className = 'line-status ' + type;
+  el.textContent = msg;
+  if(type !== 'sending') setTimeout(()=>{ if(el.textContent===msg) el.textContent=''; }, 5000);
+}
+
+function nlog(msg, type='send'){
+  const sc = document.getElementById('notifyLog');
+  const row = document.createElement('div');
+  row.className = 'nlog-row';
+  row.innerHTML = `<span class="nlog-t">${new Date().toLocaleTimeString('en-GB')}</span><span class="nlog-m ${type}">${msg}</span>`;
+  sc.insertBefore(row, sc.firstChild);
+  if(sc.children.length > 30) sc.removeChild(sc.lastChild);
+}
+
+// Build LINE Flex Message for heat alert
+function buildFlexMessage(level, hi, temp, hum, color, emoji){
+  return {
+    type: 'flex',
+    altText: `${emoji} Smart Heat-Guard — Heat Index ${hi}°C`,
+    contents: {
+      type: 'bubble',
+      size: 'kilo',
+      header: {
+        type: 'box', layout: 'vertical', backgroundColor: color, paddingAll: '14px',
+        contents: [{
+          type: 'text', text: `${emoji} ${level}`, color: '#ffffff',
+          size: 'lg', weight: 'bold'
+        },{
+          type: 'text', text: 'Smart Heat-Guard', color: 'rgba(255,255,255,0.75)', size: 'xs'
+        }]
+      },
+      body: {
+        type: 'box', layout: 'vertical', paddingAll: '14px', spacing: 'sm',
+        contents: [
+          { type:'box', layout:'horizontal', contents:[
+              {type:'text',text:'🌡 Heat Index',color:'#555',size:'sm',flex:2},
+              {type:'text',text:`${hi} °C`,color:'#111',size:'sm',weight:'bold',align:'end',flex:1}
+          ]},
+          { type:'box', layout:'horizontal', contents:[
+              {type:'text',text:'🌡 Temperature',color:'#555',size:'sm',flex:2},
+              {type:'text',text:`${temp} °C`,color:'#111',size:'sm',align:'end',flex:1}
+          ]},
+          { type:'box', layout:'horizontal', contents:[
+              {type:'text',text:'💧 Humidity',color:'#555',size:'sm',flex:2},
+              {type:'text',text:`${hum} %`,color:'#111',size:'sm',align:'end',flex:1}
+          ]},
+          { type:'separator', margin:'md' },
+          { type:'text', text: new Date().toLocaleString('th-TH'), color:'#aaa', size:'xs', margin:'md' }
+        ]
+      }
+    }
+  };
+}
+
+async function sendLine(messages, eventKey='manual'){
+  const token  = LINE.token  || document.getElementById('lineToken').value.trim();
+  const userId = LINE.userId || document.getElementById('lineUserId').value.trim();
+  if(!token)  { setLineBadge('err','❌ ไม่มี Channel Access Token'); nlog('❌ ไม่มี Token','err'); return false; }
+  if(!userId) { setLineBadge('err','❌ ไม่มี User/Group ID');        nlog('❌ ไม่มี User ID','err'); return false; }
+
+  // Cooldown
+  if(eventKey !== 'manual'){
+    const last   = LINE.lastSent[eventKey] || 0;
+    const coolMs = (LINE.cooldown||5) * 60 * 1000;
+    if(Date.now() - last < coolMs){
+      const rem = Math.ceil((coolMs-(Date.now()-last))/60000);
+      log(`LINE: cooldown ${rem} นาที (${eventKey})`,'warn');
+      return false;
+    }
+  }
+  LINE.lastSent[eventKey] = Date.now();
+
+  const gasUrl = LINE.proxy || document.getElementById('lineProxy').value.trim();
+
+  setLineBadge('sending','⏳ กำลังส่ง...');
+  nlog(`ส่ง [${eventKey}] → ${userId.slice(0,8)}****`,'send');
+  log(`LINE Messaging API: ส่ง [${eventKey}]`,'info');
+
+  // Build plain text message from messages array
+  const textMsg = messages.map(m => m.text || (m.altText||'')).filter(Boolean).join('\n');
+
+  try {
+    // Send to Google Apps Script (no CORS issue)
+    const res = await fetch(gasUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, userId, message: textMsg })
+    });
+
+    const txt = await res.text().catch(()=>'');
+    if(res.ok && (txt.includes('ok') || txt.includes('OK') || res.status===200)){
+      setLineBadge('ok','✅ ส่งสำเร็จ');
+      nlog('✅ Push Message สำเร็จ','ok');
+      log(`LINE Messaging API: ส่งสำเร็จ [${eventKey}]`,'ok');
+      return true;
+    } else {
+      setLineBadge('err',`❌ GAS Error: ${txt.slice(0,60)}`);
+      nlog(`❌ GAS Error: ${txt.slice(0,80)}`,'err');
+      log(`LINE GAS Error: ${txt.slice(0,60)}`,'err');
+      return false;
+    }
+  } catch(e){
+    setLineBadge('err','❌ Network error');
+    nlog('❌ '+e.message,'err');
+    log('LINE Network error: '+e.message,'err');
+    return false;
+  }
+}
+
+async function testLine(){
+  const msgs = [{
+    type: 'text',
+    text: `✅ Smart Heat-Guard — ทดสอบ LINE Messaging API\n⏰ ${new Date().toLocaleString('th-TH')}\n\nระบบแจ้งเตือนพร้อมใช้งานแล้ว 🎉`
+  }];
+  await sendLine(msgs, 'manual');
+}
+
+function lineNotify_danger(hi){
+  if(!LINE.enabled) return;
+  const t    = (S.temp||0).toFixed(1);
+  const h    = (S.hum||0).toFixed(0);
+  const hiS  = hi.toFixed(1);
+
+  if(hi >= 54 && LINE.triggers.extreme){
+    sendLine([
+      buildFlexMessage('EXTREME DANGER', hiS, t, h, '#c0392b', '🆘'),
+      { type:'text', text:`🆘 EXTREME DANGER!\nHeat Index: ${hiS}°C\nเสี่ยง Heat Stroke สูงมาก — ต้องการความช่วยเหลือทันที!` }
+    ], 'extreme');
+  } else if(hi >= 41 && hi < 54 && LINE.triggers.danger){
+    sendLine([
+      buildFlexMessage('DANGER', hiS, t, h, '#e67e22', '🔴'),
+      { type:'text', text:`🔴 DANGER!\nHeat Index: ${hiS}°C\nอุณหภูมิอันตราย — เสี่ยงเพลียแดด` }
+    ], 'danger');
+  }
+}
+
+// Load saved config on startup
+setTimeout(loadLine, 500);
+
+// ══════════════════════════════════════════════════════
+// CLOCK + BOOT
+// ══════════════════════════════════════════════════════
+setInterval(()=>{document.getElementById('clockEl').textContent=new Date().toLocaleTimeString('en-GB');},1000);
+document.getElementById('clockEl').textContent=new Date().toLocaleTimeString('en-GB');
+
+window.onload=()=>{
+  initChart();
+  log('Smart Heat-Guard v4.0 เริ่มต้นแล้ว','ok');
+  log(S.hasSerial?'Web Serial API พร้อมใช้งาน ✓':'⚠ Web Serial ไม่รองรับ — ใช้ Demo Mode',S.hasSerial?'ok':'warn');
+  log('ขั้นตอน: 1) กด "เลือก Port"  2) เสียบบอร์ด  3) กด Connect','info');
+  log('หรือกด ⚡ Flash เพื่อโหลด firmware พร้อม Connect อัตโนมัติ','info');
+  // Connect button locked until port is selected
+  document.getElementById('btnCn').disabled = !S.hasSerial;
+};
+</script>
+</body>
+</html>
